@@ -11,19 +11,28 @@ import java.awt.event.ActionListener;
 import java.text.*;
 import java.io.*;
 import javax.swing.*;
+import java.sql.*;
 
 public class SystemHAS{
-	JFrame frame;
+	public static final String DRIVER = "com.mysql.jdbc.Driver";
+	public static final String USER = "root";
+	public static final String PASSWORD = "shaan@18";
+	public static JFrame frame;
 	JPanel panel;
 	JLabel label;
 	JButton bttn_str, bttn_exit, bttn_register, query1, query2, query3, query4, query5;
 	String stream_select="";
-	String room_select="";
+	int room_select=0;
 	String sex_select="";
-	String room_type1="";
-	String room_type2="";
+	int room_type1=0;
+	int room_type2=0;
+	public static String type_1_login="";
+	Connection con=null;
 	SystemHAS(){
+		
+
 		frame=new JFrame();
+		//frame.setContentPane(new StudentLoggedIn(Integer.toString(5)));
 		panel=new JPanel();
 		panel.setLayout(new BoxLayout(panel,BoxLayout.Y_AXIS));
 		JLabel label=new JLabel("Hostel Allocation System");
@@ -138,7 +147,7 @@ public class SystemHAS{
 	}
 
 	public class Login_Form{
-		String type_1_login;
+		
 		Login_Form(){
 			panel.removeAll();
 		panel.updateUI();
@@ -154,7 +163,7 @@ public class SystemHAS{
 		panel3.setBackground(new Color(255,255,244));
 		panel2.setPreferredSize(new Dimension(130, 130));
 		panel1.setPreferredSize(new Dimension(130, 130));
-		JButton username=new JButton("Username");
+		JButton username=new JButton("ID");
 		JButton password=new JButton("Password");
 		JButton type =new JButton("Type");
 		JButton back1=new JButton ("Back");
@@ -183,14 +192,14 @@ public class SystemHAS{
 		admin.addItemListener(new ItemListener(){
         	public void itemStateChanged(ItemEvent e) {         
             	if(e.getStateChange()==1){
-            		type_1_login="Admin";
+            		type_1_login="admin";
             	}
          	}           
      	});	
 		student.addItemListener(new ItemListener() {
         	public void itemStateChanged(ItemEvent e) {         
             	if(e.getStateChange()==1){
-            		type_1_login="Student";
+            		type_1_login="student";
             	}
          	}           
      	});
@@ -202,32 +211,69 @@ public class SystemHAS{
      		public void actionPerformed(ActionEvent ev){
      			String un=txt.getText();
      			String pass=txt5.getText();
-
+     			System.out.println(type_1_login);
      			if(un.equals("") || pass.equals("")){
      				JOptionPane.showMessageDialog(frame,"Invalid or empty field");
      				new Login_Form();
      			}
      			else{
-     				if(type_1_login=="Admin"){
-     					//access Admin database
-     					//if(authenticate username and password)
-     						new View_Admin();
-     					//otherwise throw and error
-     		// 			else{
-     		// 				JOptionPane.showMessageDialog(frame,"wrong username or password");
-							// new Login_Form();
-     		// 			}
+     				if(type_1_login=="admin"){
+     					ResultSet rs;
+     					PreparedStatement ps;
+     					try{
+     						Class.forName(DRIVER);
+     			            con = DriverManager.getConnection("jdbc:mysql://localhost/hostel_allocation_system",USER,PASSWORD);
+     			            ps = con.prepareStatement("select id,password from admin where id=?");
+     			            ps.setInt(1,Integer.parseInt(un));
+     			            rs=ps.executeQuery();
+     			            if(!rs.next()){
+     			            	JOptionPane.showMessageDialog(null,"Enter a valid username.","Invalid username",JOptionPane.WARNING_MESSAGE);
+     			            	new Login_Form();
+     			            }
+     			            else if(Integer.toString(rs.getInt(1)).equals(un)){
+     			            	if(!(rs.getString(2).equals(pass)))
+     			            		JOptionPane.showMessageDialog(null,"Enter a valid password.","Invalid password",JOptionPane.WARNING_MESSAGE);
+     			            	else{
+     			            		frame.setContentPane(new AdminLoggedIn());
+     			            	}
+     			            }
+     			            rs.close();
+     			            ps.close();
+     					}catch(ClassNotFoundException e){
+     						e.printStackTrace();
+     					}catch(SQLException e){
+     						e.printStackTrace();
+     					}
+    
 
      				}
-     				else if(type_1_login=="Student"){
-     					//access student database
-     					//if(authenticate username and password)
-     						new View_Student();
-     					//otherwise throw and error
-     		// 			else{
-     		// 				JOptionPane.showMessageDialog(frame,"wrong username or password");
-							// new Login_Form();
-     		// 			}
+     				else if(type_1_login=="student"){
+     					ResultSet rs;
+     					PreparedStatement ps;
+     					try{
+     						Class.forName(DRIVER);
+     			            con = DriverManager.getConnection("jdbc:mysql://localhost/hostel_allocation_system",USER,PASSWORD);
+     			            ps = con.prepareStatement("select sid,password from student_password where sid=?");
+     			            ps.setInt(1,Integer.parseInt(un));
+     			            rs=ps.executeQuery();
+     			            if(!rs.next()){
+     			            	JOptionPane.showMessageDialog(null,"Enter a valid username.","Invalid username",JOptionPane.WARNING_MESSAGE);
+     			            	new Login_Form();
+     			            }
+     			            else if(Integer.toString(rs.getInt(1)).equals(un)){
+     			            	if(!(rs.getString(2).equals(pass)))
+     			            		JOptionPane.showMessageDialog(null,"Enter a valid password.","Invalid password",JOptionPane.WARNING_MESSAGE);
+     			            	else{
+     			            		frame.setContentPane(new StudentLoggedIn(un));
+     			            	}
+     			            }
+     			            rs.close();
+     			            ps.close();
+     					}catch(ClassNotFoundException e){
+     						e.printStackTrace();
+     					}catch(SQLException e){
+     						e.printStackTrace();
+     					}
 
      				}
 
@@ -242,6 +288,7 @@ public class SystemHAS{
 
 	public class Register_Form{
 		int x;
+		int ID=0;
 		Register_Form(){
 			panel.removeAll();
 			panel.updateUI();
@@ -272,13 +319,35 @@ public class SystemHAS{
 			JTextField txt7=new JTextField();
 
 			txt.setPreferredSize(new Dimension(50, 120));
-			txt2.setPreferredSize(new Dimension(40, 100));
+			txt2.setPreferredSize(new Dimension(40, 100)); txt2.setEditable(false);
 			txt3.setPreferredSize(new Dimension(50, 120));
 			txt4.setPreferredSize(new Dimension(50, 120));
 			txt5.setPreferredSize(new Dimension(50, 120));
 			txt6.setPreferredSize(new Dimension(50, 120));
 			txt7.setPreferredSize(new Dimension(50, 120));
-
+			ResultSet rs;
+			PreparedStatement ps;
+			//int ID=0;
+			try{			
+	            Class.forName(DRIVER);
+	            con = DriverManager.getConnection("jdbc:mysql://localhost/hostel_allocation_system",USER,PASSWORD);
+	            ps = con.prepareStatement("select max(sid) from student");
+	            rs=ps.executeQuery();
+	            if(rs.next()){
+	            	ID=rs.getInt(1);
+	            }
+	            else{
+	            	ID=0;
+	            }
+	            rs.close();
+	            ps.close();
+			}catch (ClassNotFoundException e) {
+		            e.printStackTrace();
+		        } 
+		        catch (SQLException e) {
+		            e.printStackTrace();
+		        }
+			txt2.setText(Integer.toString(ID+1));
 			JRadioButton bcse = new JRadioButton("B.Tech(CSE)");
 			JRadioButton bece = new JRadioButton("B.Tech(ECE)");
       		JRadioButton bcsam = new JRadioButton("B.Tech(CSAM)");
@@ -370,7 +439,51 @@ public class SystemHAS{
       		JButton submit=new JButton("Submit");
       		submit.addActionListener(new ActionListener(){
       			public void actionPerformed(ActionEvent ev){
-
+      				ResultSet rs;
+      				PreparedStatement ps;
+      				try {
+      					if(txt.getText().equals("") || txt2.getText().equals("") || txt3.getText().equals("")){
+      						JOptionPane.showMessageDialog(null,"Can not leave Username, Password and/or Name empty.","Empty Fields",JOptionPane.WARNING_MESSAGE);
+      						new Register_Form();
+      					}
+      					Class.forName(DRIVER);
+      		            con = DriverManager.getConnection("jdbc:mysql://localhost/hostel_allocation_system",USER,PASSWORD);
+      		            ps=con.prepareStatement("insert into student values(?,?,?,?,?,?)");
+      		            ps.setInt(1, ID+1);
+      		            ps.setString(2, txt.getText());
+      		            ps.setString(3, txt4.getText());
+      		            ps.setString(4, txt7.getText());
+      		            ps.setString(5,txt5.getText());
+      		            ps.setString(6,stream_select);
+      		            ps.executeUpdate();
+      		            //rs.close();
+      		            ps.close();
+      		            String s;
+      		            s=txt6.getText();
+      		            String[] arr = s.split(",");
+      		            int len=arr.length;
+      		            
+      		            for(int i=0;i<len;i++){
+      		            	ps=con.prepareStatement("insert into student_number  values(?,?)");
+      		            	ps.setInt(1, ID+1);
+      		            	ps.setLong(2, Long.parseLong(arr[i].trim()));
+      		            	ps.executeUpdate();
+      		            	//rs.close();
+      		            	ps.close();
+      		            }
+      		            ps=con.prepareStatement("insert into student_password values(?,?)");
+      		            ps.setInt(1, ID+1);
+      		            ps.setString(2, txt3.getText());
+      		            ps.executeUpdate();
+      		            ps.close();
+      		            new SystemHAS();
+      		            
+      		        }catch (ClassNotFoundException e) {
+      		            e.printStackTrace();
+      		        } 
+      		        catch (SQLException e) {
+      		            e.printStackTrace();
+      		        }
       			}
       		});
       		panel.add(submit);
@@ -428,13 +541,6 @@ public class SystemHAS{
 
 	}
 
-	public class View_Admin{
-
-	}
-
-	public class View_Student{
-
-	}
 
 	public class Query1_form{
 		Query1_form(){
@@ -463,7 +569,7 @@ public class SystemHAS{
 			group.add(single_s);
 			group.add(double_s);
 			group.add(triple_s);
-
+			
 			panel2.add(hname);
 			panel2.add(type);
 			panel1.add(f);
@@ -480,26 +586,28 @@ public class SystemHAS{
 			single_s.addItemListener(new ItemListener() {
          		public void itemStateChanged(ItemEvent ev) {         
             		if(ev.getStateChange()==1)
-            			room_select="single";
+            			room_select=1;
          		}           
       		});
       		double_s.addItemListener(new ItemListener() {
          		public void itemStateChanged(ItemEvent ev) {         
             		if(ev.getStateChange()==1)
-            			room_select="double";
+            			room_select=2;
          		}           
       		});
       		triple_s.addItemListener(new ItemListener() {
          		public void itemStateChanged(ItemEvent ev) {         
             		if(ev.getStateChange()==1)
-            			room_select="triple";
+            			room_select=3;
          		}           
       		});
 
       		JButton submit=new JButton("Submit");
       		submit.addActionListener(new ActionListener(){
       			public void actionPerformed(ActionEvent ev){
-
+      				String r=f.getText();
+      				System.out.println(r);
+      				frame.setContentPane(new Submit_query1(r));
       			}
       		});
       		panel.add(submit);
@@ -513,6 +621,61 @@ public class SystemHAS{
 			//else
 			return 0;
 		}
+	}
+	public class Submit_query1 extends JPanel{
+		String i;
+		Submit_query1(String i){
+			super();
+			this.i=i;
+			createSubmitQuery1();
+			
+		}
+		public void createSubmitQuery1(){
+			this.setSize(900,900);
+			this.setVisible(true);
+			JButton back=new JButton("Back");
+			back.addActionListener(new ActionListener(){
+				public void actionPerformed(ActionEvent ev){
+					new SystemHAS();
+				}
+			});
+			System.out.println(i);
+			System.out.println(room_select);
+			String[] columns={"Mess ID"};
+			Object[][] data=null;
+			ResultSet rs;
+			PreparedStatement ps;
+			try{
+				Class.forName(DRIVER);
+		        con = DriverManager.getConnection("jdbc:mysql://localhost/hostel_allocation_system",USER,PASSWORD);
+		        ps=con.prepareStatement("select distinct messid from room natural join mess natural join application natural join hostel where hname=? and type=?");
+		        ps.setString(1, i);
+		        ps.setInt(2, room_select);
+		        rs=ps.executeQuery();
+		        int len=0;
+		        while(rs.next())
+		        	len++;
+		        rs.absolute(0);
+		        data=new Object[len][1];
+		        for(int i=0;i<len;i++){
+		        	rs.next();
+		        	data[i][0]=rs.getInt(1);
+		        }
+		        rs.close();
+		        ps.close();
+			}catch(ClassNotFoundException e){
+				e.printStackTrace();
+			}catch(SQLException e){
+				e.printStackTrace();
+			}
+			JTable table = new JTable(data, columns);
+	        this.add(new JScrollPane(table));
+	        this.add(back);
+				
+			
+		}
+		
+		
 	}
 	public class Query2_form{
 		Query2_form(){
@@ -575,7 +738,8 @@ public class SystemHAS{
 			JButton submit=new JButton("Submit");
       		submit.addActionListener(new ActionListener(){
       			public void actionPerformed(ActionEvent ev){
-
+      				String r=f.getText();
+      				frame.setContentPane(new Submit_query2(r));
       			}
       		});
       		panel.add(submit);
@@ -590,7 +754,61 @@ public class SystemHAS{
 		}
 
 	}
-
+	public class Submit_query2 extends JPanel{
+		String f;
+		Submit_query2(String f){
+			super();
+			this.f=f;
+			createSubmitQuery1();
+			
+		}
+		public void createSubmitQuery1(){
+			this.setSize(900,900);
+			this.setVisible(true);
+			JButton back=new JButton("Back");
+			back.addActionListener(new ActionListener(){
+				public void actionPerformed(ActionEvent ev){
+					new SystemHAS();
+				}
+			});
+			String[] columns={"Room ID"};
+			Object[][] data=null;
+			ResultSet rs;
+			PreparedStatement ps;
+			try{
+				Class.forName(DRIVER);
+		        con = DriverManager.getConnection("jdbc:mysql://localhost/hostel_allocation_system",USER,PASSWORD);
+		        ps=con.prepareStatement("select distinct roomid from room natural join application natural join student where (response=? or response=?) and floor=? and (sex=?)");
+		        ps.setString(1, "pending");
+		        ps.setString(2, "rejected");
+		        ps.setInt(3,Integer.parseInt(f));
+		        ps.setString(4, sex_select);
+		            rs=ps.executeQuery();
+		        int len=0;
+		        while(rs.next())
+		        	len++;
+		        rs.absolute(0);
+		        data=new Object[len][1];
+		        for(int i=0;i<len;i++){
+		        	rs.next();
+		        	data[i][0]=rs.getInt(1);
+		        }
+		        rs.close();
+		        ps.close();
+		            
+			}catch(ClassNotFoundException e){
+				e.printStackTrace();
+			}catch(SQLException e){
+				e.printStackTrace();
+			}
+			JTable table = new JTable(data, columns);
+	        this.add(new JScrollPane(table));
+	        this.add(back);
+				
+			
+		}
+	}
+	
 	public class Query3_form{
 		Query3_form(){
 			panel.removeAll();
@@ -621,7 +839,8 @@ public class SystemHAS{
 			});
       		submit.addActionListener(new ActionListener(){
       			public void actionPerformed(ActionEvent ev){
-
+      				String r=f.getText();
+      				frame.setContentPane(new Submit_query3(r));
       			}
       		});
       		panel.add(submit);
@@ -637,6 +856,55 @@ public class SystemHAS{
 			return 0;
 		}
 
+	}
+	public class Submit_query3 extends JPanel{
+		String f;
+		Submit_query3(String f){
+			super();
+			this.f=f;
+			createSubmitQuery3();
+		}
+		public void createSubmitQuery3(){
+			this.setSize(900,900);
+			this.setVisible(true);
+			JButton back=new JButton("Back");
+			back.addActionListener(new ActionListener(){
+				public void actionPerformed(ActionEvent ev){
+					new SystemHAS();
+				}
+			});
+			String[] columns={"Increase in students"};
+			Object[][] data=null;
+			ResultSet rs;
+			PreparedStatement ps;
+				try{
+					Class.forName(DRIVER);
+		            con = DriverManager.getConnection("jdbc:mysql://localhost/hostel_allocation_system",USER,PASSWORD);
+		            ps=con.prepareStatement("select count(sid) from student natural join application natural join room natural join mess where response=? and messid=?");
+		            ps.setString(1, "pending");
+		            ps.setInt(2, Integer.parseInt(f));
+		            rs=ps.executeQuery();
+		          //  rs=ps.executeQuery();
+			        int len=0;
+			        while(rs.next())
+			        	len++;
+			        rs.absolute(0);
+			        data=new Object[len][1];
+			        for(int i=0;i<len;i++){
+			        	rs.next();
+			        	data[i][0]=rs.getInt(1);
+			        }
+			        rs.close();
+			        ps.close();
+				}catch(ClassNotFoundException e){
+					e.printStackTrace();
+				}catch(SQLException e){
+					e.printStackTrace();
+				}
+				JTable table = new JTable(data, columns);
+		        this.add(new JScrollPane(table));
+		        this.add(back);
+		}
 	}
 	public class Query4_form{
 		Query4_form(){
@@ -690,43 +958,47 @@ public class SystemHAS{
 			single_s1.addItemListener(new ItemListener() {
          		public void itemStateChanged(ItemEvent ev) {         
             		if(ev.getStateChange()==1)
-            			room_type1="single";
+            			room_type1=1;
          		}           
       		});
       		double_s1.addItemListener(new ItemListener() {
          		public void itemStateChanged(ItemEvent ev) {         
             		if(ev.getStateChange()==1)
-            			room_type1="double";
+            			room_type1=2;
          		}           
       		});
       		triple_s1.addItemListener(new ItemListener() {
          		public void itemStateChanged(ItemEvent ev) {         
             		if(ev.getStateChange()==1)
-            			room_type1="triple";
+            			room_type1=3;
          		}           
       		});
       		single_s2.addItemListener(new ItemListener() {
          		public void itemStateChanged(ItemEvent ev) {         
             		if(ev.getStateChange()==1)
-            			room_type2="single";
+            			room_type2=1;
          		}           
       		});
       		double_s2.addItemListener(new ItemListener() {
          		public void itemStateChanged(ItemEvent ev) {         
             		if(ev.getStateChange()==1)
-            			room_type2="double";
+            			room_type2=2;
          		}           
       		});
       		triple_s2.addItemListener(new ItemListener() {
          		public void itemStateChanged(ItemEvent ev) {         
             		if(ev.getStateChange()==1)
-            			room_type2="triple";
+            			room_type2=3;
          		}           
       		});
       		submit.addActionListener(new ActionListener(){
       			public void actionPerformed(ActionEvent ev){
-      				if(check_same_type(room_type1,room_type2)==1){
-      					//throw an error
+      				if(room_type1==room_type2){
+      					JOptionPane.showMessageDialog(null,"You have given two same room types","Same Types",JOptionPane.WARNING_MESSAGE);
+      					new Query4_form();
+      				}
+      				else{
+      					frame.setContentPane(new Submit_query4());
       				}
       			}
       		});
@@ -743,6 +1015,56 @@ public class SystemHAS{
 			}
 		}
 
+	}
+	public class Submit_query4 extends JPanel{
+		
+		Submit_query4(){
+			super();
+			createSubmitQuery4();
+		}
+		public void createSubmitQuery4(){
+			this.setSize(900,900);
+			this.setVisible(true);
+			JButton back=new JButton("Back");
+			back.addActionListener(new ActionListener(){
+				public void actionPerformed(ActionEvent ev){
+					new SystemHAS();
+				}
+			});
+			String[] columns={"Hostel Name"};
+			Object[][] data=null;
+			ResultSet rs;
+			PreparedStatement ps;
+				try{
+					Class.forName(DRIVER);
+		            con = DriverManager.getConnection("jdbc:mysql://localhost/hostel_allocation_system",USER,PASSWORD);
+		            ps=con.prepareStatement("select t1.hname from (select hid,hname,type,count(*) as value from hostel natural join room where status=? group by hid, type) as t1, (select hid,hname,type,count(*) as value from hostel natural join room where status=? group by hid,type) as t2 where t1.hid=t2.hid and t1.type=? And t2.type=? And t1.value>t2.value;");
+		            ps.setString(1,"Occupied");
+		            ps.setString(2, "Occupied");
+		            ps.setInt(3, room_type1);
+		            ps.setInt(4, room_type2);
+		            rs=ps.executeQuery();
+		          //  rs=ps.executeQuery();
+			        int len=0;
+			        while(rs.next())
+			        	len++;
+			        rs.absolute(0);
+			        data=new Object[len][1];
+			        for(int i=0;i<len;i++){
+			        	rs.next();
+			        	data[i][0]=rs.getString(1);
+			        }
+			        rs.close();
+			        ps.close();
+				}catch(ClassNotFoundException e){
+					e.printStackTrace();
+				}catch(SQLException e){
+					e.printStackTrace();
+				}
+				JTable table = new JTable(data, columns);
+		        this.add(new JScrollPane(table));
+		        this.add(back);
+		}
 	}
 	public class Query5_form{
 		Query5_form(){
@@ -775,7 +1097,8 @@ public class SystemHAS{
 			});
       		submit.addActionListener(new ActionListener(){
       			public void actionPerformed(ActionEvent ev){
-
+      				String r=f.getText();
+      				frame.setContentPane(new Submit_query5(r));
       			}
       		});
       		panel.add(submit);
@@ -792,6 +1115,56 @@ public class SystemHAS{
 			return 0;
 		}
 
+	}
+	
+	public class Submit_query5 extends JPanel{
+		String f;
+		Submit_query5(String f){			
+			super();
+			this.f=f;
+			createSubmitQuery5();
+		}
+		public void createSubmitQuery5(){
+			this.setSize(900,900);
+			this.setVisible(true);
+			JButton back=new JButton("Back");
+			back.addActionListener(new ActionListener(){
+				public void actionPerformed(ActionEvent ev){
+					new SystemHAS();
+				}
+			});
+			String[] columns={"Student Name"};
+			Object[][] data=null;
+			ResultSet rs;
+			PreparedStatement ps;
+				try{
+					Class.forName(DRIVER);
+		            con = DriverManager.getConnection("jdbc:mysql://localhost/hostel_allocation_system",USER,PASSWORD);
+		            ps=con.prepareStatement("select sname,response from student natural join application natural join room natural join mess  where (messid in (select messid  from (select count(roomid) as total,messid  from room natural join mess  group by floor,messid) as t1,(select max(total) as max from (select count(roomid) as total,messid from room natural join mess group by floor,messid) as t3) as t2   where t1.total=t2.max and response=? and hid=?))");
+		            ps.setString(1, "accepted");
+		            ps.setInt(2, Integer.parseInt(f));
+		            rs=ps.executeQuery();
+		          //  rs=ps.executeQuery();
+			        int len=0;
+			        while(rs.next())
+			        	len++;
+			        rs.absolute(0);
+			        data=new Object[len][1];
+			        for(int i=0;i<len;i++){
+			        	rs.next();
+			        	data[i][0]=rs.getString(1);
+			        }
+			        rs.close();
+			        ps.close();
+				}catch(ClassNotFoundException e){
+					e.printStackTrace();
+				}catch(SQLException e){
+					e.printStackTrace();
+				}
+				JTable table = new JTable(data, columns);
+		        this.add(new JScrollPane(table));
+		        this.add(back);
+		}
 	}
 
 			
